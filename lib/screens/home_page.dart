@@ -1,147 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/note_provider.dart';
+import '../models/note.dart';
 import 'note_editor_screen.dart';
+import '../widgets/note_card.dart';
 
-const Color primaryColor = Color(0xFF6666FF);
-const Color cardBackgroundColor = Color(0xFFF7F7F7);
-const Color secondaryTextColor = Color(0xFF666666);
-
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  void _navigateToAddNote(BuildContext context) {
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  void _navigate(BuildContext context, {Note? note}) {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (context) => const NoteEditorScreen()));
+    ).push(MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // gọi loadNotes() sau khi build xong frame đầu tiên
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NoteProvider>(context, listen: false).loadNotes();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 80.0),
-                Column(
-                  children: [
-                    Container(
-                      height: 100,
-                      width: 100,
-                      decoration: BoxDecoration(
-                        color: cardBackgroundColor,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.landscape,
-                              color: primaryColor,
-                              size: 40,
-                            ),
-                            Text(
-                              "Võ Tuấn Việt",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: secondaryTextColor,
-                              ),
-                            ),
-                            Text(
-                              "2224801030324",
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: secondaryTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 80.0),
-                  ],
-                ),
+      appBar: AppBar(title: const Text("Ghi chú của bạn")),
 
-                const Text(
-                  'Start Your Journey',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12.0),
-                const Text(
-                  'Every big step starts with small step. Notes your first idea and start your journey!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: secondaryTextColor,
-                    height: 1.5,
-                  ),
-                ),
+      body: Consumer<NoteProvider>(
+        builder: (context, provider, child) {
+          final notes = provider.notes;
 
-                const SizedBox(height: 100.0),
-                Row(
+          if (notes.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40.0),
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: primaryColor, width: 2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                  children: [
+                    Icon(Icons.notes, size: 80, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      'Chưa có ghi chú nào',
+                      style: TextStyle(fontSize: 20, color: Colors.grey),
                     ),
-                    const SizedBox(width: 40.0),
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 40,
-                        ),
-                        onPressed: () => _navigateToAddNote(context),
-                      ),
+                    Text(
+                      'Nhấn nút "+" để tạo ghi chú đầu tiên!',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
-                const SizedBox(height: 100.0),
-              ],
-            ),
-          ),
-        ),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: notes.length,
+            itemBuilder: (context, index) {
+              final note = notes[index];
+              return NoteCard(
+                note: note,
+                onTap: () => _navigate(context, note: note),
+              );
+            },
+          );
+        },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        selectedItemColor: primaryColor,
-        unselectedItemColor: secondaryTextColor,
-        showUnselectedLabels: true,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.check_circle_outline),
-            label: 'Finished',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Sinished',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-        onTap: (index) {},
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _navigate(context), // tạo ghi chú mới
+        child: const Icon(Icons.add),
       ),
     );
   }

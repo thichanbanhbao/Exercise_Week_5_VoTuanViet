@@ -8,6 +8,18 @@ class DatabaseHelper {
 
   DatabaseHelper._init();
 
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB('Notes.db');
+    return _database!;
+  }
+
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+    return await openDatabase(path, version: 1, onCreate: _createDB);
+  }
+
   Future _createDB(Database db, int version) async {
     await db.execute('''
       CREATE TABLE Notes (
@@ -20,35 +32,26 @@ class DatabaseHelper {
     ''');
   }
 
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
-
-    return await openDatabase(path, version: 1, onCreate: _createDB);
-  }
-
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB('notes.db');
-    return _database!;
-  }
-
   Future<int> create(Note note) async {
     final db = await database;
-    return await db.insert('notes', note.toMap());
+    return await db.insert('Notes', note.toMap());
   }
 
   Future<List<Note>> readAll() async {
     final db = await database;
-    final maps = await db.query('notes', orderBy: 'updatedAt DESC');
-    return List.from(maps.map((m) => Note.fromMap(m)));
+    final result = await db.query('Notes', orderBy: 'updatedAt DESC');
+    return result.map((map) => Note.fromMap(map)).toList();
   }
 
   Future<int> update(Note note) async {
     final db = await database;
+
+    final data = note.toMap();
+    data.remove('id');
+
     return await db.update(
-      'notes',
-      note.toMap(),
+      'Notes',
+      data,
       where: 'id = ?',
       whereArgs: [note.id],
     );
@@ -56,6 +59,6 @@ class DatabaseHelper {
 
   Future<int> delete(int id) async {
     final db = await database;
-    return await db.delete('notes', where: 'id = ? ', whereArgs: [id]);
+    return await db.delete('Notes', where: 'id = ?', whereArgs: [id]);
   }
 }

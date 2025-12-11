@@ -6,24 +6,31 @@ class NoteProvider extends ChangeNotifier {
   List<Note> _notes = [];
   List<Note> get notes => _notes;
 
-  Future<void> LoadNotes() async {
+  Future<void> loadNotes() async {
     _notes = await DatabaseHelper.instance.readAll();
     notifyListeners();
   }
 
   Future<void> addNote(Note note) async {
-    await DatabaseHelper.instance.create(note);
-    await LoadNotes();
+    final id = await DatabaseHelper.instance.create(note);
+    final newNote = Note(
+      id: id,
+      title: note.title,
+      content: note.content,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    );
+    _notes.insert(0, newNote);
+    notifyListeners();
   }
 
   Future<void> updateNote(Note note) async {
     await DatabaseHelper.instance.update(note);
-    await LoadNotes(); // Tải lại danh sách để cập nhật UI
+    await loadNotes();
   }
 
-  // HÀM BỔ SUNG: Xóa ghi chú (nên có)
   Future<void> deleteNote(int id) async {
     await DatabaseHelper.instance.delete(id);
-    await LoadNotes(); // Tải lại danh sách để cập nhật UI
+    await loadNotes();
   }
 }

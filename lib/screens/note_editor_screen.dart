@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/note.dart';
 import '../providers/note_provider.dart';
+import '../models/note.dart';
 
 class NoteEditorScreen extends StatefulWidget {
   final Note? note;
@@ -13,41 +13,41 @@ class NoteEditorScreen extends StatefulWidget {
 }
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
-
-  bool get isEditing => widget.note != null;
+  final titleController = TextEditingController();
+  final contentController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    if (isEditing) {
-      _titleController.text = widget.note!.title;
-      _contentController.text = widget.note!.content;
+    if (widget.note != null) {
+      titleController.text = widget.note!.title;
+      contentController.text = widget.note!.content;
     }
   }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    super.dispose();
-  }
+  void _saveNote(BuildContext context) async {
+    final title = titleController.text.trim();
+    final content = contentController.text.trim();
+    final provider = Provider.of<NoteProvider>(context, listen: false);
 
-  void _saveNote() async {
-    final title = _titleController.text.trim();
-    final content = _contentController.text.trim();
-
-    if (title.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập tiêu đề!')));
+    if (title.isEmpty || content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Tiêu đề và nội dung không được để trống"),
+        ),
+      );
       return;
     }
 
-    final provider = Provider.of<NoteProvider>(context, listen: false);
-
-    if (isEditing) {
+    if (widget.note == null) {
+      final newNote = Note(
+        title: title,
+        content: content,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await provider.addNote(newNote);
+    } else {
       final updatedNote = Note(
         id: widget.note!.id,
         title: title,
@@ -56,14 +56,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         updatedAt: DateTime.now(),
       );
       await provider.updateNote(updatedNote);
-    } else {
-      final newNote = Note(
-        title: title,
-        content: content,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      await provider.addNote(newNote);
     }
 
     Navigator.of(context).pop();
@@ -71,41 +63,56 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final actions = widget.note != null
+        ? <Widget>[
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () async {
+                await Provider.of<NoteProvider>(
+                  context,
+                  listen: false,
+                ).deleteNote(widget.note!.id!);
+                Navigator.pop(context);
+              },
+            ),
+          ]
+        : <Widget>[];
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Chỉnh sửa Ghi chú' : 'Tạo Ghi chú Mới'),
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveNote),
-        ],
+        title: Text(widget.note == null ? "Tạo ghi chú" : "Chỉnh sửa ghi chú"),
+        actions: actions,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          children: <Widget>[
+          children: [
             TextField(
-              controller: _titleController,
+              controller: titleController,
               decoration: const InputDecoration(
-                hintText: 'Tiêu đề...',
                 border: InputBorder.none,
+                hintText: "Tiêu đề",
               ),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-
             Expanded(
               child: TextField(
-                controller: _contentController,
-                keyboardType: TextInputType.multiline,
-                maxLines: null,
+                controller: contentController,
                 decoration: const InputDecoration(
-                  hintText: 'Nội dung ghi chú...',
                   border: InputBorder.none,
+                  hintText: "Nội dung...",
                 ),
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 18),
+                maxLines: null,
               ),
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _saveNote(context),
+        child: const Icon(Icons.save),
       ),
     );
   }

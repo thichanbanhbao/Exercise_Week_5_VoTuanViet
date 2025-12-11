@@ -13,15 +13,25 @@ class Note {
     required this.updatedAt,
   });
 
-  Map<String, dynamic> toMap() => {
-    'title': title,
-    'content': content,
-    'createdAt': createdAt.toIso8601String(),
-  };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      'title': title,
+      'content': content,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
 
-  static fromMap(Map<String, dynamic> map) {
+    // Chỉ thêm id nếu tồn tại (khi Update)
+    if (id != null) {
+      map['id'] = id;
+    }
+
+    return map;
+  }
+
+  static Note fromMap(Map<String, dynamic> map) {
     return Note(
-      id: map['id'],
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id'].toString()),
       title: map['title'],
       content: map['content'],
       createdAt: DateTime.parse(map['createdAt']),
